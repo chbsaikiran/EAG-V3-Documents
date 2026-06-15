@@ -480,6 +480,67 @@ Layer 3: never reached
 
 ---
 
+## What is Playwright and Why is it Here?
+
+Playwright is a library made by **Microsoft** that lets Python code control a real web browser
+(Chrome, Firefox, Safari) automatically — exactly like a human sitting at a computer clicking
+through a website.
+
+### What Playwright can do
+
+```python
+browser = await p.chromium.launch()       # open a real Chrome browser
+page    = await browser.new_page()
+
+await page.goto("https://amazon.in")      # navigate to a URL
+await page.click("#filter-button")        # click a button
+await page.keyboard.type("laptops")       # type in a search box
+await page.screenshot()                   # take a screenshot
+await page.content()                      # read the full rendered HTML
+await page.inner_text("body")             # read only the visible text
+```
+
+All of this happens in a **real browser** — JavaScript runs, React renders, animations play —
+exactly as if a human was using it.
+
+### Why Playwright is needed here
+
+Without Playwright (Layer 1 only):
+```
+httpx fetches raw HTML → gets 1605 chars of navigation text
+→ React hasn't run yet → model cards are missing → distiller hallucinates
+```
+
+With Playwright (Layer 2b / 3):
+```
+Playwright opens Chrome → page fully loads → React runs → model cards render
+→ LLM reads accessibility tree → clicks "Text Generation" filter
+→ clicks "Sort by Likes" → page shows sorted results
+→ browser extracts 8000 chars of real content
+```
+
+### Simple analogy
+
+| Tool | Analogy |
+|---|---|
+| `httpx` (Layer 1) | Taking a photo of a shop's front door from outside |
+| `Playwright` (Layer 2b / 3) | Actually walking into the shop, opening drawers, pressing buttons |
+
+Some websites (especially React/SPA apps like HuggingFace, Amazon) only show their real
+content **after** JavaScript runs. `httpx` sees the empty shell. Playwright sees the fully
+loaded page — because it IS a real browser.
+
+### Where Playwright is used in the cascade
+
+| Layer | Uses Playwright? | What it does with it |
+|---|---|---|
+| Layer 1 | No | Pure `httpx` HTTP request — no browser |
+| Layer 2a | Yes | Opens browser, finds a CSS selector, clicks it |
+| Layer 2b | Yes | Opens browser, reads accessibility tree, executes LLM-chosen clicks |
+| Layer 3 | Yes | Same as 2b, PLUS takes screenshots with numbered boxes drawn on them |
+
+---
+
 ## Key Interview Talking Points
 
 **Q: Why not just use a real browser for everything (skip Layer 1)?**
